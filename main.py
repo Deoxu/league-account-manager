@@ -8,13 +8,10 @@ import os
 class AccountManagerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         # Configurações de estilo
-        ctk.set_appearance_mode("dark")  # Modo escuro
-        ctk.set_default_color_theme("dark-blue")  # Tema base
-        self.configure(bg="#0a1428")
         self.title("League Account Manager")
         self.geometry("800x500")
+        self.configure(fg_color="#0a1428")
         self.font = my_font = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
 
         self.accounts = []  # Lista para armazenar as contas
@@ -173,7 +170,12 @@ class AccountManagerApp(ctk.CTk):
             self.update_account_list()
             add_window.destroy()
 
-        save_button = ctk.CTkButton(add_window, text="Salvar", command=save_account)
+        save_button = ctk.CTkButton(add_window, text="Salvar", command=save_account, fg_color="#c89c38",
+            hover_color="#b29a5e",
+            border_width=1,
+            border_color="black",
+            corner_radius=0,
+            )
         save_button.pack(pady=20)
 
     def generate_opgg_link(self, riot_id):
@@ -188,19 +190,19 @@ class AccountManagerApp(ctk.CTk):
         accounts_to_show = filtered_accounts if filtered_accounts else self.accounts
 
         if not accounts_to_show:
-            no_accounts_label = ctk.CTkLabel(self.account_list, text="Nenhuma conta adicionada ainda.", font=("Arial", 12))
+            no_accounts_label = ctk.CTkLabel(self.account_list, text="Nenhuma conta adicionada ainda.", font=("Segoe UI", 12))
             no_accounts_label.pack(pady=10)
         else:
             for account in accounts_to_show:
                 account_frame = ctk.CTkFrame(self.account_list)
                 account_frame.pack(fill="x", pady=2)
 
-                clickable_label = ctk.CTkLabel(account_frame, text=account['login'], font=("Arial", 12, "underline"), text_color="blue", cursor="hand2")
+                clickable_label = ctk.CTkLabel(account_frame, text=account['login'], font=("Segoe UI", 14, "underline", "bold"), text_color="#c89c38", cursor="hand2")
                 clickable_label.pack(side="left", padx=5)
 
                 clickable_label.bind("<Button-1>", lambda e, link=account['opgg']: webbrowser.open(link))
 
-                details_label = ctk.CTkLabel(account_frame, text=f"| {account['riot_id']} | {account['level']} | {account['elo']} | {account['honor']}", font=("Arial", 12))
+                details_label = ctk.CTkLabel(account_frame, text=f"| {account['riot_id']} | {account['level']} | {account['elo']} | {account['honor']}", font=("Segoe UI", 14, "bold"))
                 details_label.pack(side="left")
 
     def update_filter_options(self, selection):
