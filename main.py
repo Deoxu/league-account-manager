@@ -14,7 +14,7 @@ class AccountManagerApp(ctk.CTk):
         ctk.set_default_color_theme("dark-blue")  # Tema base
         self.configure(bg="#0a1428")
         self.title("League Account Manager")
-        self.geometry("700x500")
+        self.geometry("800x500")
         self.font = my_font = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
 
         self.accounts = []  # Lista para armazenar as contas
