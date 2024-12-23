@@ -1,100 +1,82 @@
-from tkinter import messagebox
-
-import customtkinter as ctk #pip install customtkinter
-import webbrowser
-from PIL import Image, ImageTk #pip install pillow
 import os
+import json
+import webbrowser
+from tkinter import messagebox
+from tkinter import ttk
+import customtkinter as ctk  # pip install customtkinter
+from PIL import Image, ImageTk  # pip install pillow
 
 class AccountManagerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
-        # Configurações de estilo
-        ctk.set_appearance_mode("dark")  # Modo escuro
-        ctk.set_default_color_theme("dark-blue")  # Tema base
-        self.configure(bg="#0a1428")
         self.title("League Account Manager")
         self.geometry("800x500")
-        self.font = my_font = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
-
-        self.accounts = []  # Lista para armazenar as contas
-
+        self.configure(fg_color="#0a1428")
+        self.font = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
+        self.accounts = []
+        self.data_file = "accounts.json"  # Arquivo para salvar as contas
+        self.load_accounts()
         self.create_widgets()
 
     def create_widgets(self):
-        my_font = ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
-        # Caminho relativo para a imagem
-        logo_path = os.path.join("assets", "interfacelogo.png")
-
+        # Configurar o logo
         try:
-            # Carregar a imagem do logo usando CTkImage
-            logo_image = ctk.CTkImage(
-                light_image=Image.open(logo_path),
-                dark_image=Image.open(logo_path),
-                size=(243, 131),  # Substitua por tamanhos adequados
-            )
-
-            # Substituir o título pelo logo
+            logo_path = os.path.join("assets", "interfacelogo.png")
+            logo_image = ctk.CTkImage(light_image=Image.open(logo_path), dark_image=Image.open(logo_path), size=(243, 131))
             self.logo_label = ctk.CTkLabel(self, image=logo_image, text="")
             self.logo_label.pack(pady=10)
         except FileNotFoundError:
-            # Caso a imagem não seja encontrada, exibir mensagem padrão
-            self.logo_label = ctk.CTkLabel(self, text="Logo não encontrada", font=self.font, bg_color="#0a1428",
-                                           text_color="white")
+            self.logo_label = ctk.CTkLabel(self, text="Logo não encontrada", font=self.font, text_color="white")
             self.logo_label.pack(pady=10)
 
-        # Botões principais
+        # Botão de adicionar conta
         self.add_account_button = ctk.CTkButton(
-            self,
-            text="Adicionar Conta",
-            command=self.open_add_account_window,
-            fg_color="#c89c38",
-            hover_color="#b29a5e",
-            border_width=1,
-            border_color="black",
-            corner_radius=0,
-            font=self.font
+            self, text="Adicionar Conta", command=self.open_add_account_window, fg_color="#c89c38",
+            hover_color="#b29a5e", border_width=1, border_color="black", corner_radius=0, font=self.font
         )
         self.add_account_button.pack(pady=10)
 
-        self.filter_frame = ctk.CTkFrame(self, bg_color="#0a1428")
+        # Frame para filtros
+        self.filter_frame = ctk.CTkFrame(self, fg_color="#0a1428")
         self.filter_frame.pack(pady=10, fill="x")
 
         self.filter_type_listbox = ctk.CTkComboBox(
             self.filter_frame, values=["Elo", "Honra", "Level"], command=self.update_filter_options, state="readonly",
             font=self.font
         )
-        self.filter_type_listbox.set("")  # Valor padrão
+        self.filter_type_listbox.set("")
         self.filter_type_listbox.pack(side="left", padx=5)
 
         self.filter_option_listbox = ctk.CTkComboBox(self.filter_frame, values=[], state="readonly", font=self.font)
-        self.filter_option_listbox.set("")  # Valor inicial vazio
+        self.filter_option_listbox.set("")
         self.filter_option_listbox.pack(side="left", padx=5)
 
         self.filter_button = ctk.CTkButton(
-            self.filter_frame,
-            text="Aplicar Filtro",
-            command=self.filter_accounts,
-            fg_color="#c89c38",
-            hover_color="#b29a5e",
-            border_width=1,
-            border_color="black",
-            corner_radius=0,
-            font=self.font
+            self.filter_frame, text="Aplicar Filtro", command=self.filter_accounts, fg_color="#c89c38",
+            hover_color="#b29a5e", border_width=1, border_color="black", corner_radius=0, font=self.font
         )
         self.filter_button.pack(side="left", padx=5)
 
-        # Lista de contas
-        self.account_frame = ctk.CTkFrame(self, bg_color="#0a1428")
+        # Lista de contas com barra de rolagem
+        self.account_frame = ctk.CTkFrame(self, fg_color="#0a1428")
         self.account_frame.pack(pady=10, fill="both", expand=True)
 
         self.account_list_header = ctk.CTkLabel(
-            self.account_frame, text="Login | Riot ID | Nível | Elo | Honra", font=my_font, text_color="white"
+            self.account_frame, text="Login | Riot ID | Nível | Elo | Honra", font=self.font, text_color="white"
         )
         self.account_list_header.pack(pady=5)
 
-        self.account_list = ctk.CTkFrame(self.account_frame, bg_color="#0a1428")
-        self.account_list.pack(fill="both", expand=True)
+        self.account_canvas = ctk.CTkCanvas(self.account_frame, bg="#222b3d", highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.account_frame, orient="vertical", command=self.account_canvas.yview)
+        self.account_list = ctk.CTkFrame(self.account_canvas, fg_color="#222b3d")
+
+        self.account_list.bind("<Configure>", lambda e: self.account_canvas.configure(scrollregion=self.account_canvas.bbox("all")))
+
+        self.account_canvas.create_window((0, 0), window=self.account_list, anchor="nw")
+        self.account_canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.account_canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
 
         self.update_account_list()
 
@@ -102,29 +84,33 @@ class AccountManagerApp(ctk.CTk):
         add_window = ctk.CTkToplevel(self)
         add_window.title("Adicionar Conta")
         add_window.geometry("400x500")
+        add_window.configure(fg_color="#1e293b")
 
-        add_window.transient(self)  # Define como janela dependente da principal
-        add_window.grab_set()  # Impede interação com a janela principal
-        add_window.focus_set()  # Define o foco para a nova janela
+        # Configuração para manter o foco na nova janela
+        add_window.grab_set()  # Bloqueia interações fora desta janela
 
-        # Formulário para adicionar conta
-        ctk.CTkLabel(add_window, text="Nome de Login:").pack(pady=5)
+        # Formulário de adicionar conta
+        ctk.CTkLabel(add_window, text="Nome de Login:", text_color="white").pack(pady=5)
         login_entry = ctk.CTkEntry(add_window)
         login_entry.pack(pady=5)
 
-        ctk.CTkLabel(add_window, text="Riot ID (ex: riot#id):").pack(pady=5)
+        ctk.CTkLabel(add_window, text="Riot ID (ex: riot#id):", text_color="white").pack(pady=5)
         riot_id_entry = ctk.CTkEntry(add_window)
         riot_id_entry.pack(pady=5)
 
-        ctk.CTkLabel(add_window, text="Nível da Conta:").pack(pady=5)
+        ctk.CTkLabel(add_window, text="Nível da Conta:", text_color="white").pack(pady=5)
         level_entry = ctk.CTkEntry(add_window)
         level_entry.pack(pady=5)
 
-        ctk.CTkLabel(add_window, text="Elo:").pack(pady=5)
-        elo_listbox = ctk.CTkComboBox(add_window, values=["Unranked", "Ferro", "Bronze", "Prata", "Ouro", "Platina", "Esmeralda", "Diamante", "Mestre", "Grão Mestre", "Desafiante"], state="readonly")
+        ctk.CTkLabel(add_window, text="Elo:", text_color="white").pack(pady=5)
+        elo_listbox = ctk.CTkComboBox(
+            add_window,
+            values=["Unranked", "Ferro", "Bronze", "Prata", "Ouro", "Platina", "Esmeralda", "Diamante", "Mestre",
+                    "Grão Mestre", "Desafiante"], state="readonly"
+        )
         elo_listbox.pack(pady=5)
 
-        ctk.CTkLabel(add_window, text="Nível de Honra:").pack(pady=5)
+        ctk.CTkLabel(add_window, text="Nível de Honra:", text_color="white").pack(pady=5)
         honor_listbox = ctk.CTkComboBox(add_window, values=["1", "2", "3", "4", "5"], state="readonly")
         honor_listbox.pack(pady=5)
 
@@ -135,19 +121,16 @@ class AccountManagerApp(ctk.CTk):
             elo = elo_listbox.get()
             honor = honor_listbox.get()
 
-            # Verificar se todos os campos estão preenchidos
             if not (login and riot_id and level and elo and honor):
                 messagebox.showerror("Erro", "Todos os campos devem ser preenchidos!")
                 return
 
-            # Validar Riot ID
             if "#" not in riot_id:
                 messagebox.showerror("Erro", "Riot ID deve conter # (ex: deoxu#dede)")
                 return
 
-            # Validar nível e elo
             try:
-                level = int(level)  # Converter nível para inteiro
+                level = int(level)
                 if level < 30 and elo != "Unranked":
                     messagebox.showerror("Erro", "Contas abaixo do nível 30 não podem ter elo.")
                     return
@@ -155,10 +138,7 @@ class AccountManagerApp(ctk.CTk):
                 messagebox.showerror("Erro", "Nível da conta deve ser um número válido.")
                 return
 
-            # Gerar link do op.gg
             opgg_link = self.generate_opgg_link(riot_id)
-
-            # Criar conta
             account = {
                 "login": login,
                 "riot_id": riot_id,
@@ -168,12 +148,15 @@ class AccountManagerApp(ctk.CTk):
                 "opgg": opgg_link
             }
 
-            # Adicionar conta à lista e atualizar interface
             self.accounts.append(account)
+            self.save_accounts()
             self.update_account_list()
             add_window.destroy()
 
-        save_button = ctk.CTkButton(add_window, text="Salvar", command=save_account)
+        save_button = ctk.CTkButton(
+            add_window, text="Salvar", command=save_account, fg_color="#c89c38",
+            hover_color="#b29a5e", border_width=1, border_color="black", corner_radius=0
+        )
         save_button.pack(pady=20)
 
     def generate_opgg_link(self, riot_id):
@@ -182,37 +165,134 @@ class AccountManagerApp(ctk.CTk):
         return f"https://www.op.gg/summoners/br/{name}-{tag}"
 
     def update_account_list(self, filtered_accounts=None):
+        # Limpar os widgets existentes na lista de contas
         for widget in self.account_list.winfo_children():
             widget.destroy()
 
         accounts_to_show = filtered_accounts if filtered_accounts else self.accounts
 
         if not accounts_to_show:
-            no_accounts_label = ctk.CTkLabel(self.account_list, text="Nenhuma conta adicionada ainda.", font=("Arial", 12))
+            no_accounts_label = ctk.CTkLabel(
+                self.account_list,
+                text="Nenhuma conta adicionada ainda.",
+                font=("Segoe UI", 12),
+                text_color="white"
+            )
             no_accounts_label.pack(pady=10)
         else:
             for account in accounts_to_show:
-                account_frame = ctk.CTkFrame(self.account_list)
-                account_frame.pack(fill="x", pady=2)
+                account_frame = ctk.CTkFrame(self.account_list, fg_color="#0a1428", corner_radius=8)
+                account_frame.pack(pady=5, padx=20, fill="x", anchor="center")
 
-                clickable_label = ctk.CTkLabel(account_frame, text=account['login'], font=("Arial", 12, "underline"), text_color="blue", cursor="hand2")
-                clickable_label.pack(side="left", padx=5)
+                # Riot ID clicável
+                clickable_label = ctk.CTkLabel(
+                    account_frame,
+                    text=account['riot_id'],
+                    font=("Segoe UI", 14, "underline"),
+                    text_color="#c89c38",
+                    cursor="hand2"
+                )
+                clickable_label.grid(row=0, column=0, padx=10, sticky="w")
 
                 clickable_label.bind("<Button-1>", lambda e, link=account['opgg']: webbrowser.open(link))
 
-                details_label = ctk.CTkLabel(account_frame, text=f"| {account['riot_id']} | {account['level']} | {account['elo']} | {account['honor']}", font=("Arial", 12))
-                details_label.pack(side="left")
+                # Detalhes da conta
+                details_label = ctk.CTkLabel(
+                    account_frame,
+                    text=f"{account['login']} | {account['level']} | {account['elo']} | {account['honor']}",
+                    font=("my_font", 14, "bold"),
+                    text_color="white",
+                )
+                details_label.grid(row=0, column=1, padx=10, sticky="w")
+
+                # Botão de editar
+                edit_button = ctk.CTkButton(
+                    account_frame,
+                    text="Editar",
+                    command=lambda acc=account: self.edit_account_window(acc),
+                    fg_color="#c89c38",
+                    hover_color="#b29a5e",
+                    border_width=1,
+                    border_color="black",
+                    corner_radius=0,
+                    width=70,
+                    height=30
+                )
+                edit_button.grid(row=0, column=2, padx=10, sticky="e")
+
+    def edit_account_window(self, account):
+        edit_window = ctk.CTkToplevel(self)
+        edit_window.title("Editar Conta")
+        edit_window.geometry("400x500")
+        edit_window.configure(fg_color="#1e293b")
+        edit_window.grab_set()  # Bloquear interação fora desta janela
+
+        # Campos para editar
+        ctk.CTkLabel(edit_window, text="Nome de Login:", text_color="white").pack(pady=5)
+        login_entry = ctk.CTkEntry(edit_window)
+        login_entry.insert(0, account['login'])
+        login_entry.pack(pady=5)
+
+        ctk.CTkLabel(edit_window, text="Riot ID (ex: riot#id):", text_color="white").pack(pady=5)
+        riot_id_entry = ctk.CTkEntry(edit_window)
+        riot_id_entry.insert(0, account['riot_id'])
+        riot_id_entry.pack(pady=5)
+
+        ctk.CTkLabel(edit_window, text="Nível da Conta:", text_color="white").pack(pady=5)
+        level_entry = ctk.CTkEntry(edit_window)
+        level_entry.insert(0, account['level'])
+        level_entry.pack(pady=5)
+
+        ctk.CTkLabel(edit_window, text="Elo:", text_color="white").pack(pady=5)
+        elo_listbox = ctk.CTkComboBox(
+            edit_window,
+            values=["Unranked", "Ferro", "Bronze", "Prata", "Ouro", "Platina", "Esmeralda", "Diamante", "Mestre",
+                    "Grão Mestre", "Desafiante"],
+            state="readonly"
+        )
+        elo_listbox.set(account['elo'])
+        elo_listbox.pack(pady=5)
+
+        ctk.CTkLabel(edit_window, text="Nível de Honra:", text_color="white").pack(pady=5)
+        honor_listbox = ctk.CTkComboBox(edit_window, values=["1", "2", "3", "4", "5"], state="readonly")
+        honor_listbox.set(account['honor'])
+        honor_listbox.pack(pady=5)
+
+        def save_changes():
+            # Salvar alterações na conta
+            account['login'] = login_entry.get()
+            account['riot_id'] = riot_id_entry.get()
+            account['level'] = level_entry.get()
+            account['elo'] = elo_listbox.get()
+            account['honor'] = honor_listbox.get()
+
+            # Atualizar exibição
+            self.save_accounts()
+            self.update_account_list()
+            edit_window.destroy()
+
+        save_button = ctk.CTkButton(
+            edit_window,
+            text="Salvar Alterações",
+            command=save_changes,
+            fg_color="#c89c38",
+            hover_color="#b29a5e",
+            border_width=1,
+            border_color="black",
+            corner_radius=0
+        )
+        save_button.pack(pady=20)
 
     def update_filter_options(self, selection):
         if selection == "Elo":
             self.filter_option_listbox.configure(values=["Unranked", "Ferro", "Bronze", "Prata", "Ouro", "Platina", "Esmeralda", "Diamante", "Mestre", "Grão Mestre", "Desafiante"])
-            self.filter_option_listbox.set("")  # Resetar valor
+            self.filter_option_listbox.set("")
         elif selection == "Honra":
             self.filter_option_listbox.configure(values=["1", "2", "3", "4", "5"])
-            self.filter_option_listbox.set("")  # Resetar valor
+            self.filter_option_listbox.set("")
         elif selection == "Level":
             self.filter_option_listbox.configure(values=["Nível 30+", "Nível 30-"])
-            self.filter_option_listbox.set("")  # Resetar valor
+            self.filter_option_listbox.set("")
 
     def filter_accounts(self):
         filter_type = self.filter_type_listbox.get()
@@ -236,6 +316,15 @@ class AccountManagerApp(ctk.CTk):
             messagebox.showinfo("Filtro", "Nenhuma conta encontrada com os critérios selecionados.")
 
         self.update_account_list(filtered)
+
+    def save_accounts(self):
+        with open(self.data_file, "w") as file:
+            json.dump(self.accounts, file, indent=4)
+
+    def load_accounts(self):
+        if os.path.exists(self.data_file):
+            with open(self.data_file, "r") as file:
+                self.accounts = json.load(file)
 
 if __name__ == "__main__":
     app = AccountManagerApp()
